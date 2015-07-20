@@ -18,19 +18,25 @@ Note: Algorithms may produce differing results depending on the problem
 #include <string>
 #include <fstream>
 #include <sstream>
-
+#include <limits>
 #define MAXSIZE 20
 
 void outputCoinArray(int cca[], int length, int count, char arg[]);
-int changeSlow();
+int changeSlow(int v[], int cca[], int amount, int length);
 int changeGreedy(int v[], int cca[], int &amount, int &length);
-int changeDP();
-
+int changeDP(int v[], int cca[], int &amount, int &length);
+void initArray(int arr[], int length);
 
 int main(int argc, char *argv[])
 {
 	int values[MAXSIZE];
-	int coinCountArray[MAXSIZE];
+	int coinCountArray1[MAXSIZE];
+	int coinCountArray2[MAXSIZE];
+	int coinCountArray3[MAXSIZE];
+	initArray(coinCountArray1, MAXSIZE);
+	initArray(coinCountArray2, MAXSIZE);
+	initArray(coinCountArray3, MAXSIZE);
+	
 	int amount, length, coinCount, intHolder;
 	std::ifstream input;
 	std::string s, filename;
@@ -89,10 +95,11 @@ int main(int argc, char *argv[])
 			the input file which is the amount we are searching for and put it into amount.*/
 			std::getline(input, s);
 			amount = atoi(s.c_str());
-
+			int amt;
+			amt = amount; 
 			//call the algorithm and then call the outputting function
-			coinCount = changeGreedy(values, coinCountArray, amount, length);
-			outputCoinArray(coinCountArray, length, coinCount, argv[1]);
+			coinCount = changeGreedy(values, coinCountArray1, amt, length);
+			outputCoinArray(coinCountArray1, length, coinCount, argv[1]);
 
 			/*THE OTHER CALLS MAY NEED TO BE MODIFIED BEFORE HAND OR IN THE ALGORITHM
 			TO ACCOUNT FOR ONLY USING THE SAME COIN COUNT ARRAY FOR ALL OF THEM. E.G. IF
@@ -100,6 +107,11 @@ int main(int argc, char *argv[])
 			THE SECOND STRING, THE VALUE IN THE ARRAY MAY STILL REFLECT THE PREVIOUS TEST VALUE
 
 			THIS BLOCK COMMENT CAN BE DELETED AFTER PROGRAM COMPLETED.*/
+			amt = amount;
+			coinCount = changeSlow(values, coinCountArray2, amt, length);
+			outputCoinArray(coinCountArray2, length, coinCount, argv[1]);
+
+
 		}
 
 		input.close();
@@ -157,7 +169,73 @@ void outputCoinArray(int cca[], int length, int count, char arg[])
 
 	output.close();
 }
+void initArray(int arr[], int length)
+{
+	for (int i = 0; i < length; i++)
+	{
+		arr[i] = 0;
+	}
+}
+/*
+Change Slow
 
+Parameters:
+	v - the array of values as read in from the input file [low -> high]
+	cca - the coin count array
+	amount - the amount solution to be searched for as read in from the input file
+	length - the necessary length for the value and coin count arrays
+
+Process:
+	This function takes in the above parameters. It then searches the entire array of 
+	values and determine the best (minimum number of coins) using brute-force (divide
+	and conquer) appoarch.
+*/
+
+int changeSlow(int v[], int cca[], int amount, int length)
+{
+	// Assign default value to total coin count
+	int aggregateCount = std::numeric_limits<int>::max();
+	
+	// Base case - search the array of values. If the coin denomination matchs with the search
+	// value, then return the current coin as it is the lowest possible result.
+	// Update the coin count array with the coin number
+	for (int i = 0; i < length; i++)
+	{
+		if (amount == v[i])
+		{
+			cca[i] += 1;
+			return 1;
+		}
+	}
+	
+	// Recursive case - find all values as long as the value is less than search
+	// amount. Find the minimum of coins to make i cents, then find the minimum
+	// of coins to make amount - i cents. Compare the result against the best
+	// solution. If the result is better than the current best solution, replace
+	// best solution and update the coin change array. 
+	for (int i = 1; i < amount; i++)
+	{
+		int ccaI[length];
+		int ccaKI[length];
+		initArray(ccaI, length);
+		initArray(ccaKI, length);
+		int icent = changeSlow(v, ccaI, i, length);
+		int k_icent = changeSlow(v, ccaKI, amount - i, length);
+		if(icent + k_icent < aggregateCount) 
+		{
+			aggregateCount =  icent + k_icent;
+			for(int j = 0; j < length; j++)
+			{
+				ccaI[j] += ccaKI[j];
+			}
+			for(int k = 0; k < length; k++)
+			{
+				cca[k] = ccaI[k];
+			}
+		}
+	}	
+	return aggregateCount;
+}
 /*
 Change Greedy
 
