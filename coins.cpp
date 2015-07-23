@@ -24,7 +24,7 @@ Note: Algorithms may produce differing results depending on the problem
 void outputCoinArray(int cca[], int length, int count, char arg[]);
 int changeSlow(int v[], int cca[], int amount, int length);
 int changeGreedy(int v[], int cca[], int &amount, int &length);
-int changeDP(int v[], int cca[], int &amount, int &length);
+int changeDP(int v[], int cca[], int amount, int length);
 void initArray(int arr[], int length);
 
 int main(int argc, char *argv[])
@@ -96,22 +96,23 @@ int main(int argc, char *argv[])
 			std::getline(input, s);
 			amount = atoi(s.c_str());
 			int amt;
-			amt = amount; 
-			//call the algorithm and then call the outputting function
-			coinCount = changeGreedy(values, coinCountArray1, amt, length);
-			outputCoinArray(coinCountArray1, length, coinCount, argv[1]);
 
-			/*THE OTHER CALLS MAY NEED TO BE MODIFIED BEFORE HAND OR IN THE ALGORITHM
-			TO ACCOUNT FOR ONLY USING THE SAME COIN COUNT ARRAY FOR ALL OF THEM. E.G. IF
-			YOU MODIFY ONE VALUE ON THE FIRST TEST, BUT THEN IT DOES NOT GET MODIFIED ON
-			THE SECOND STRING, THE VALUE IN THE ARRAY MAY STILL REFLECT THE PREVIOUS TEST VALUE
-
-			THIS BLOCK COMMENT CAN BE DELETED AFTER PROGRAM COMPLETED.*/
+			//call the slow (divide and conquer) algorithm then call the output
+			//function
 			amt = amount;
 			coinCount = changeSlow(values, coinCountArray2, amt, length);
 			outputCoinArray(coinCountArray2, length, coinCount, argv[1]);
 
+			//call the greedy algorithm and then call the output function
+			amt = amount; 
+			coinCount = changeGreedy(values, coinCountArray1, amt, length);
+			outputCoinArray(coinCountArray1, length, coinCount, argv[1]);
 
+			//call the dynamic programming algorithm then call the output 
+			//function
+			amt = amount;
+			coinCount = changeDP(values, coinCountArray3, amt, length);
+			outputCoinArray(coinCountArray3, length, coinCount, argv[1]);
 		}
 
 		input.close();
@@ -272,3 +273,70 @@ int changeGreedy(int v[], int cca[], int &amount, int &length)
 
 	return aggregateCount;
 }
+
+/*
+Change Dynamic Programming
+
+Parameters:
+	v - the array of values as read in from the input file [low -> high]
+	cca - the coin count array
+	amount - the amount solution to be searched for as read in from the input file
+	length - the necessary length for the value and coin count arrays
+
+Process:
+	This function takes in the above parameters. It then calculates the number of coins 
+	needed for each value from 0 to n-amount using dynamic programming - bottom up method.
+	It also keeps track of the coin that is used for each value. Once the function has 
+	the minimum amount of coins for a given amount, it will back track the used coins array
+	to figure out the actual coins that were used.
+*/
+
+int changeDP(int v[], int cca[], int amount, int length)
+{
+	// Create arrays to store minimum amount and coins used
+	int minCoin[amount + 1];
+	int coinUsed[amount + 1];
+	// Initialize the min coin array [0] with 0 as this is the starting position
+	minCoin[0] = 0;
+	// Initialize the rest of the min coin array with high value
+	for (int i = 1; i < amount + 1; i++)
+	{
+		minCoin[i] =  std::numeric_limits<int>::max();
+	}	
+	// Initialize coin used array and coin change array
+	initArray(coinUsed,amount + 1);
+	initArray(cca,length);
+
+	// Calculate the minimum amount of coin needed for each amount 0 to n (given amount)
+	for (int i = 1; i <= amount; i++)
+	{
+		for (int j = 0; j < length; j++)
+		{
+			if (v[j] <= i)
+			{
+				if (minCoin[i - v[j]] + 1 < minCoin[i])
+				{
+					minCoin[i] = minCoin[i - v[j]] + 1;
+					coinUsed[i] = j;
+				}
+			}
+		}
+	}
+	
+	// Back track the actual coins that were used in the calculation
+	int n = amount;
+	int temp = 0;	
+	while (n > 0)
+	{
+		temp = v[coinUsed[n]];
+		for (int i = 0; i < length; i++)
+		{
+			if (temp == v[i])
+			{
+				cca[i] += 1;
+			}
+		}
+		n = n - v[coinUsed[n]];
+	}
+	return minCoin[amount];
+}	
